@@ -14,6 +14,17 @@
   icon: fa-briefcase
 
 - name:
+    detail: Reinforcement Learning
+    link: 
+  desc:
+    detail: Syllabus included Introduction to Reinforcement learning, Multi-armed bandits, Finite Markov decision processes, Dynamic Programming, Monte-Carlo Methods, Temporal difference methods, on-policy prediction and control.
+  date:
+    detail: June 2019
+  job:
+    detail: Reinforcement Learning
+  icon: fa-address-card
+
+- name:
     detail: Deep Learning Specialization
     link: https://www.coursera.org/account/accomplishments/specialization/certificate/PCKJE2YDTRRG
   desc:
