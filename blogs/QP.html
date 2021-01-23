@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <title>
+        Quadratic Programming
+    </title>
+    <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no'
+        name='viewport' />
+    <!--     Fonts and icons     -->
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,200" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Shadows+Into+Light" rel="stylesheet" />
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
+    <!-- CSS Files -->
+    <link href="./assets/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="./assets/css/paper-kit.css?v=2.2.0" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/portfolio-allocation/dist/portfolio_allocation.dist.min.js"
+        type="text/javascript"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.0.1/es5/tex-mml-chtml.js">
+    </script>
+    <script src='https://cdn.plot.ly/plotly-latest.min.js' charset="utf-8"></script>
+
+
+    <style>
+        .myfont {
+            font-family: 'Shadows Into Light', cursive;
+        }
+
+        .mystyle {
+            font-family: 'Shadows Into Light', cursive;
+            font-size: 25px;
+        }
+
+        .black {
+            color: black;
+        }
+
+        .white {
+            color: white;
+        }
+    </style>
+</head>
+
+<body class="landing-page sidebar-collapse" ng-app="myApp" ng-controller="myCtrl">
+    <!-- <script type="module">
+        import quadprogJs from 'https://cdn.skypack.dev/quadprog-js';
+        console.log("Hi:", quadprogJs);
+    </script> -->
+    <script src="https://code.angularjs.org/1.6.9/angular.js"></script>
+    <script type="module">
+        // angular.module("app", []).controller("HelloWorldCtrl", function ($scope) {
+        //     $scope.message = "Hello World"
+        // })
+        import quadprogJs from 'https://cdn.skypack.dev/quadprog-js';
+
+        // console.log("Hi:", quadprogJs);
+        var app = angular.module('myApp', []);
+        app.controller('myCtrl', function ($scope, $window) {
+
+            // $scope.k = 1.0;
+            $scope.x1 = 0.5;
+            $scope.x2 = 1.0 - $scope.x1;
+            $scope.mean1 = 10;
+            $scope.mean2 = 15;
+            $scope.var1 = 5;
+            $scope.var2 = 10;
+            $scope.covar = 3;
+            $scope.optx1 = "";
+            $scope.optx2 = "";
+            $scope.optfun = "";
+
+
+            $scope.init = function () {
+                console.log("Inside INIT. Plotly:", Plotly);
+                $scope.compute_opt();
+            }
+
+
+            $scope.compute_obj_fn = function (x1, x2) {
+                var ft = x1 * $scope.mean1 + x2 * $scope.mean2;
+                var st = x1 * (x1 * $scope.var1 + x2 * $scope.covar) + x2 * (x1 * $scope.covar + x2 * $scope.var2);
+                st = $scope.k * st;
+                return ft - st;
+            };
+
+
+            $scope.compute_opt = function () {
+                // var opt = { constraints: { riskTolerance: $scope.k } };
+                // var covMat = [[\(scope.var1, \)scope.covar],
+                // [\(scope.covar, \)scope.var2]];
+                // var returns = [\(scope.mean1, \)scope.mean2];
+                // var w = PortfolioAllocation.meanVarianceOptimizationWeights(returns, covMat, opt);
+                // $scope.optx1 = w[0];
+                // $scope.optx2 = w[1];
+
+                // const qp = require('quadprog-js');
+                console.log("Compute opt called");
+
+                var Q = [[2 * $scope.k * $scope.var1, 2 * $scope.k * $scope.covar],
+                [2 * $scope.k * $scope.covar, 2 * $scope.k * $scope.var2]];
+                var c = [- $scope.mean1, - $scope.mean2];
+                var A = [[-1, 0],
+                [0, -1],
+                [1, 1]];
+                var b = [0, 0, 1];
+                try {
+                    var res = quadprogJs(Q, c, A, b);
+                    $scope.optx1 = res.solution[0];
+                    $scope.optx2 = res.solution[1];
+                    $scope.optfun = $scope.compute_obj_fn($scope.optx1, $scope.optx2);
+                    $scope.err_msg = "";
+                }
+                catch (err) {
+                    $scope.err_msg = err.message;
+                    $scope.optx1 = "-";
+                    $scope.optx2 = "-";
+                    $scope.optfun = "-";
+                }
+
+                console.log($scope.optx1, $scope.optx2);
+                console.log("res:", res);
+
+                if ($scope.k) {
+                    $scope.plot();
+                }
+            };
+            // $scope.compute_opt();
+
+            $scope.button_clk = function () {
+                $scope.compute_opt();
+                $scope.plot();
+
+            };
+
+            // $scope.egplot = function () {
+            //     Plotly.d3.csv('https://raw.githubusercontent.com/plotly/datasets/master/api_docs/mt_bruno_elevation.csv', function (err, rows) {
+            //         function unpack(rows, key) {
+            //             return rows.map(function (row) { return row[key]; });
+            //         }
+
+            //         var z_data = []
+            //         for (var i = 0; i < 24; i++) {
+            //             z_data.push(unpack(rows, i));
+            //         }
+
+            //         var data = [{
+            //             z: z_data,
+            //             type: 'surface'
+            //         }];
+
+            //         var layout = {
+            //             title: 'Mt Bruno Elevation',
+            //             autosize: false,
+            //             width: 500,
+            //             height: 500,
+            //             margin: {
+            //                 l: 65,
+            //                 r: 50,
+            //                 b: 65,
+            //                 t: 90,
+            //             }
+            //         };
+            //         console.log("eg z_data:", z_data)
+            //         Plotly.newPlot('myDiv', data, layout);
+            //     });
+
+            //     $scope.myplot();
+            // };
+
+            $scope.plot = function () {
+
+                console.log("In function plt");
+                function makeArr(startValue, stopValue, cardinality) {
+                    var arr = [];
+                    var step = (stopValue - startValue) / (cardinality - 1);
+                    for (var i = 0; i < cardinality; i++) {
+                        arr.push(startValue + (step * i));
+                    }
+                    return arr;
+                }
+
+                var cardi = 25;
+                var x_data = makeArr(0, 1, cardi);
+                var y_data = x_data;
+
+                var z_data = new Array(cardi);
+                for (var i = 0; i < cardi; i++) {
+                    z_data[i] = new Array(cardi);
+                }
+
+                for (var i = 0; i < cardi; i++) {
+                    for (var j = 0; j < cardi; j++) {
+                        z_data[i][j] = $scope.compute_obj_fn(x_data[i], y_data[j]);
+                    }
+                }
+
+                var data = [{
+                    x: x_data,
+                    y: y_data,
+                    z: z_data,
+                    type: 'surface'
+
+                }];
+
+                var layout = {
+                    title: 'Objective Fn Plot',
+                    autosize: true,
+                    // width: 500,
+                    // height: 500,
+                    margin: {
+                        l: 0,
+                        r: 0,
+                        b: 0,
+                        t: 0,
+                    }
+                };
+                console.log("x:", x_data);
+                console.log("y:", y_data);
+                console.log("z:", z_data);
+                Plotly.newPlot('myDiv', data, layout);
+
+            };
+
+            $window.onload = function () {
+
+                console.log("On load function called");
+                $scope.init();
+            };
+
+            // $scope.compute_opt(); // for init
+        });
+
+    </script>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top navbar-transparent " color-on-scroll="300">
+        <div class="container">
+            <div class="navbar-translate">
+                <a class="navbar-brand" rel="tooltip" title="Optimization Blog Series" data-placement="bottom">
+                    Optimization Blog Series
+                </a>
+                <!-- TODO: Check what is this -->
+                <button class="navbar-toggler navbar-toggler" type="button" data-toggle="collapse"
+                    data-target="#navigation" aria-controls="navigation-index" aria-expanded="false"
+                    aria-label="Toggle navigation">
+                    <span class="navbar-toggler-bar bar1">Bar1</span>
+                    <span class="navbar-toggler-bar bar2">Bar2</span>
+                    <span class="navbar-toggler-bar bar3">Bar3</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+    <!-- End Navbar -->
+    <div class="page-header" data-parallax="true" style="background-image: url('./assets/img/3dcontour.png');">
+        <div class="filter"></div>
+        <div class="container">
+            <div class="motto text-center">
+                <h1 class="myfont">Quadratic Programming</h1>
+                <h3 class="myfont">Famously known as QP</h3>
+                <br />
+                <a href="https://www.youtube.com/watch?v=f1jZr5qZpR0&list=PL6EA0722B99332589&index=38"
+                    class="btn btn-outline-neutral btn-round myfont" target="_blank"><i class="fa fa-play"></i>NPTEL QP
+                    Lecture</a>
+                <a href="https://www.youtube.com/watch?v=HgYEyT5_TrE&list=PL7y-1rk2cCsDOv91McLOnV4kExFfTB7dU&index=20"
+                    class="btn btn-outline-neutral btn-round myfont" target="_blank"><i class="fa fa-play"></i>CMU QP
+                    Lecture</a>
+            </div>
+        </div>
+    </div>
+    <div class="main">
+
+        <div class="section section-dark text-center">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12 ml-auto mr-auto">
+                        <h1 class="title myfont bg-primary">1. Introduction</h1>
+                        <p class="mystyle white text-left">
+                            A quadratic program (QP) is an optimization problem in which the objective function is
+                            quadratic in its decision variables and the constraints are linear. QP is used to optimize
+                            financial portfolios, to perform the constrained least-squares method of regression, in
+                            machine learning to compute support vector machines, etc. They also come up as sub-problems
+                            in general nonlinear constrained optimization techniques like sequential quadratic
+                            programming and augmented Lagrangian methods.
+                            <br>
+                            A quadratic program can be written in general form as below
+                            \begin{equation}
+                            \underset{x\in \mathcal{R}^n}{\mathrm{min}} \quad \frac{1}{2}x^TGx + c^Tx \quad \quad \quad
+                            (1)
+                            \end{equation}
+                            \begin{equation}
+                            \mathrm{subject~to}\qquad a_i^T = b_i~~\forall i\in \mathcal{E};\qquad a_i^T \geq
+                            b_i~~\forall i\in \mathcal{I} \quad \quad \quad (2)
+                            \end{equation}
+                            where \(G\) is a symmetric \(n\times n\) matrix, \(\mathcal{E}\) and \(\mathcal{I}\) are
+                            sets of equality and inequality constraints' indices; and \(x,~c,~a_i\) are vectors in
+                            \(\mathcal{R}^n\). If the Hessian matrix \(G\) is positive semidefinite, the problem is
+                            called a <i>convex</i> QP. Therefore, a local solution to such a problem is also the
+                            global solution. This article is primarily focused on discussion related to <i>convex</i>
+                            quadratic programming problems. Solution procedures of nonconvex quadratic programs (Hessian
+                            matrix \(G\) has negative eigen values) are generally challenging due to the presence of
+                            multiple stationary points.
+
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section text-center">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12 ml-auto mr-auto">
+                        <h1 class="title myfont bg-primary">2.Quadratic Programming with Equality Constraints</h1>
+
+                        <p class="mystyle black text-left">
+                            Solution procedure to convex QPs with equality constraints is simple and forms the basis of
+                            some algorithms for solving QPs with inequality constraints like active-set methods.
+
+                            The equality constrained quadratic program can be written as follows
+                            \begin{equation}
+                            \underset{x\in \mathcal{R}^n}{\mathrm{min}} \quad \frac{1}{2}x^TGx + c^Tx,\quad
+                            \mathrm{s.t.}~Ax = b \quad \quad \quad (3)
+                            \end{equation}
+
+                            where \(A~(m\times n)\) represents the Jacobian of the equality constraints (\(m\leq n\))
+                            and has full row rank. This implies that the constraints are consistent else we need to
+                            remove redundant constraints from the system. By defining the Lagrangian for the problem as
+                            \begin{equation}
+                            \mathcal{L}(x,\lambda) = \frac{1}{2}x^TGx + c^Tx - \lambda^T(Ax-b) \quad \quad \quad (4)
+                            \end{equation}
+                            (\(\lambda\) is the vector of Lagrange multipliers.)
+                            and setting \(\nabla_x \mathcal{L}(x^*,\lambda^*) = 0\), we get a linear system of equations
+                            that gives the optimum solution \(x^*\).
+                            \begin{equation}
+                            \begin{bmatrix}
+                            G & -A^T\\
+                            A^T & O
+                            \end{bmatrix}
+                            \begin{bmatrix}
+                            x^*\\
+                            \lambda^*
+                            \end{bmatrix} =
+                            \begin{bmatrix}
+                            -c\\
+                            b
+                            \end{bmatrix}
+                            \label{eq:QP_EQ} \quad \quad \quad (5)
+                            \end{equation}
+
+                            The above system results from the first-order optimality (KKT) conditions. Substituting
+                            \(x^* = x+p\), where \(x\) is a guess value for the solution and \(p\) is the step length,
+                            we can obtain a form useful for computations.
+                            \begin{equation}
+                            \begin{bmatrix}
+                            G & A^T\\
+                            A^T & O
+                            \end{bmatrix}
+                            \begin{bmatrix}
+                            p\\
+                            \lambda^*
+                            \end{bmatrix} =
+                            \begin{bmatrix}
+                            g\\
+                            h
+                            \end{bmatrix},\qquad g=Gx + c;~~h=Ax - b
+                            \label{eq:KKT} \quad \quad \quad (6)
+                            \end{equation}
+                            The matrix in the above KKT system (Eq. 6) is referred to as the KKT matrix
+                            \(K\). The matrix \(K\) is non-singular iff the reduced Hessian \(Z^TGZ\) is positive
+                            defitive where \(Z\) is the null space basis of A. Then the KKT system has a unique solution
+                            given by the vector pair \((x^*,\lambda^*)\) that statisfies Eq. 5.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section section-dark text-center">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12 ml-auto mr-auto">
+                        <h2 class="myfont white bg-secondary"><u>2.1 Solution of the KKT system</u></h2>
+
+                        <p class="mystyle white text-left">
+                            It is to be noted that the KKT matrix is always indefinite with \(n\) positive eigen values
+                            and \(m\) negative eigen values. Some of the <b><i>direct methods</i></b> for solving
+                            Eq. 6 are listed below.
+                        <ol class="mystyle white text-left">
+                            <li> <u>Symmetric Indefinite Factorization</u>: The KKT matrix is factorised as below,
+                                \begin{equation}
+                                P^TKP = LBL^T \quad \quad \quad (7)
+                                \end{equation}
+                                where \(P\), \(B\) and \(L\) are permutation, block diagonal and unit lower triangular
+                                matrices respectively. After factorisation, a sequence of substitution steps are
+                                performed
+                                to get the solution. In case of large sparse \(K\), the choice of \(P\) should maintain
+                                its
+                                sparsity. The computational cost of the approach is typically about half the cost of
+                                sparse
+                                Gaussian elimination. The method may however be expensive when \(L\) becomes more dense
+                                than
+                                \(K\).
+                            </li>
+
+                            <li> <u>Schur-Complement method</u>: By eliminating the block of equations in the KKT
+                                system involving \(p\) we have
+                                \begin{equation}
+                                (AG^{-1}A^T)\lambda^* = (AG^{-1}g - h) \quad \quad \quad (8)
+                                \label{eq:SC}
+                                \end{equation}
+                                After solving the above system (Eq. 8) for \(\lambda^*\), we can obtain \(p\)
+                                by
+                                solving
+                                \begin{equation}
+                                Gp = A^T\lambda^* - g \quad \quad \quad (9)
+                                \end{equation}
+                                and finally the optimal solution given by \(x^* = x+p\). This approach is useful when
+                                \(G\)
+                                is well-conditioned and easy to invert (for example if it is diagonal or block
+                                diagonal); or
+                                \(G^{-1}\) can be evaluated using a quasi-Newton update or when the number of
+                                constraints,
+                                \(m\) is small.</li>
+
+                            <li> <u>Null Space Method</u>: Null space method has wider applicability than
+                                Schur-Complement method as it does not require the Hessian matrix \(G\) to be singular.
+                                It
+                                requires a null-space basis matrix \(Z\), which can be computed with orthogonal
+                                factorizations or, for sparse problems, by LU factorization of a submatrix of \(A\). The
+                                step length vector is then partitioned into two parts as shown below,
+                                \begin{equation}
+                                p = Yp_Y + Zp_Z \quad \quad \quad (10)
+                                \end{equation}
+                                where \(Z\) is the \(n \times (n - m)\) null-space matrix and \(Y\) is any \(n \times
+                                m\)
+                                matrix such that \([Y | Z]\) is nonsingular. Then, the KKT system is decoupled into
+                                smaller
+                                systems to solve for \(p_Y\), \(p_Z\) and \(\lambda^*\) separately as shown below.
+                                \begin{align}
+                                (AY)p_Y = -h \quad \quad \quad (11) \\
+                                (Z^TGZ)p_Z = -Z^TGYp_Y - Z^Tg \label{eq:red_KKT} \quad \quad \quad (12)\\
+                                (AY)^T\lambda^* = Y^T(g+Gp) \quad \quad \quad (13)
+                                \end{align}</li>
+                        </ol>
+                        </p>
+
+                        <p class="mystyle white text-left"><u><i>Iterative methods</i></u> for solving the KKT system
+                            (Eq. 6) are ideal for
+                            very large systems and may often be parallelized well. Krylov methods for general linear or
+                            symmetric indefinite systems like GMRES, QMR, and LSQR methods are suitable for such cases.
+                            Since conjugate gradient (CG) method can be unstable on systems that are indefinite, it is
+                            not recommended for solving the full system (Eq. 6). However, iterative methods can
+                            be obtained from the null-space approach that apply CG to the reduced system given by
+                            Eq. 12. Examples are <i>preconditioned CG for reduced systems</i> and
+                            <i>projected CG mthod</i>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="section text-center">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12 ml-auto mr-auto">
+                        <h1 class="title myfont bg-primary">3. Quadratic Programming with Inequality Constraints</h1>
+
+                        <p class="mystyle black text-left">Inequality-constrained quadratic programs are QPs that
+                            contain inequality constraints and possibly equality constraints. The Lagrangian of the
+                            general QP defined in Eq. 1 and 2 is written as
+                            \begin{equation}
+                            \mathcal{L}(x,\lambda) = \frac{1}{2}x^TGx + c^Tx - \underset{i\in
+                            \mathcal{I}\cup\mathcal{E}}{\sum}\lambda_i(a_i^Tx-b_i) \quad \quad \quad (14)
+                            \end{equation}
+
+                            At the optimum point \(x^*\), we can define <i>active</i> set \(\mathcal{A}(x^*)\) as the
+                            set
+                            of constraint indices for which equality holds at \(x^*\), i.e. \(\mathcal{A}(x^*) =
+                            \{i \in \mathcal{I}\cup\mathcal{E}|a_i^Tx^*=b_i \}\). For this general QP, the first-order
+                            KKT
+                            conditions at the solution point \(x^*\) with Lagrange multipliers \(\lambda^*_i\) can be
+                            written as:
+                            \begin{align}
+                            Gx^* + c - \underset{i \in \mathcal{A}(x^*)}{\sum}\lambda^*_ia_i = 0 \quad \quad \quad
+                            (15)\\
+                            a_i^Tx^* = b_i,~~\forall~i \in \mathcal{A}(x^*) \quad \quad \quad (16)\\
+                            a_i^Tx^* \geq b_i,~~\forall~i \in \mathcal{I}| \mathcal{A}(x^*) \quad \quad \quad (17)\\
+                            \lambda_i^* \geq 0,~~\forall~i\in\mathcal{I}\cap \mathcal{A}(x^*) \quad \quad \quad (18)
+                            \end{align}
+
+                            Next, we provide a brief discussion on the some solution methodologies for inequality
+                            constrained convex quadratic programs.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section section-dark text-center">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12 ml-auto mr-auto">
+                        <h2 class="myfont white bg-secondary"><u>3.1 Active Set Method</u></h2>
+
+                        <p class="mystyle white text-left">
+                            Active set method described hereafter is based on the primal problem, but there are other
+                            variants of this approach namely dual and primal-dual active set methods. Primal active set
+                            methods start by finding a feasible point during an initial phase and then search for a
+                            solution along the edges and faces of the feasible set by solving a sequence of
+                            equality-constrained QPs. Simplex method used for linear programming is also an active-set
+                            approach, however active set methods for QP differ from it in that neither the iterates nor
+                            the solution need to be vertices of the feasible polytope. At each feasible point, the set
+                            of indices corresponding to the active constraints is defined as the working set
+                            \(\mathcal{W}_k\). The updating of \(\mathcal{W}_k\) depends on the solution of the
+                            direction-finding subproblem at each iteration.
+
+                            Given an iterate \(x_k\) and the working set \(\mathcal{W}_k\), it is first checked whether
+                            \(x_k\) minimizes the quadratic function \(q\) in the subspace defined by the working set.
+                            If not, we compute a step \(p_k\) by solving an equality constrained QP subproblem (using
+                            methods discussed earlier) in which the constraints corresponding to \(\mathcal{W}^k\) are
+                            regarded as equalities and all other constraints are temporarily discarded. The quadratic
+                            subproblem at \(k^{th}\) iteration can be written as
+                            \begin{equation}
+                            \underset{p\in \mathcal{R}^n}{\mathrm{min}} \quad \frac{1}{2}p^TGp + g_k^Tp,\qquad
+                            \mathrm{s.t.}~a_i^Tp = 0~~\forall i\in \mathcal{W}_k \quad \quad \quad (19)
+                            \end{equation}
+                            where \(g_k = Gx_k + c\) and its solution can be denoted as \(p_k\). Note that the
+                            constraints in \(\mathcal{W}_k\) are also satisfied at \(x_k + \alpha_k p_k\), for any value
+                            of \(\alpha_k\) since \(a_i^T(x_k+\alpha_k p_k) = a_i^Tx_k = b_i,~~\forall i \in
+                            \mathcal{W}_k\).
+
+                            For <i>non-zero solution</i> \(p_k\) to the subproblem, we set \(x_{k+1} = x_k + \alpha_k
+                            p_k\). If \(x_k + p_k\) is feasible with respect to all the constraints, \(\alpha_k=1\),
+                            that is we take the full step. Else we want \(\alpha_k\) to be the largest value in [0, 1]
+                            such that all constraints \(i\notin \mathcal{W}_k\) are also satisfied. Whenever, \(a_i^Tp_k
+                            < 0\) for some \(i\notin \mathcal{W}_k\), the constraint \(i\) is satisfied
+                                [\(a^T_i(x_k+\alpha_kp_k)\geq b_i\)] only if \(\alpha_k \leq (b_i -
+                                a_i^Tx_k)/a_i^Tp_k\). Thus, the step length at \(k^{th}\) iteration is determined using
+                                the following expression. \begin{equation}
+                                \alpha_k=\mathrm{min}\bigg(1,\underset{i\notin \mathcal{W}_k,~a_i^Tp_k <
+                                0}{\mathrm{min}}\frac{b_i - a_i^Tx_k}{a_i^Tp_k}\bigg) \quad \quad \quad (20)
+                                \end{equation} The constraints \(i\) which determine the minimum in the above equation
+                                are called blocking constraints. If \(p_k\) is <i>zero</i> vector, then we check the
+                                Lagrange multipliers corresponding
+                                to the constraints in the working set \(\mathcal{W}_k\) at \(x_k\). If the signs of
+                                multipliers corresponding to the inequality constraints in the working set are
+                                non-negative, that is \(\lambda_i \geq 0~~\forall~i \in \mathcal{I}\cap\mathcal{W}_k\),
+                                then the fourth KKT condition (Eq. 18) is also satisfied and \(x_k\) is the optimum
+                                point.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="section text-center">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12 ml-auto mr-auto">
+                        <h2 class="myfont black bg-secondary"><u>3.2 Gradient Projection Method</u></h2>
+
+                        <p class="mystyle black text-left">
+                            In active set method, the working set changes slowly, usually by a single index in each
+                            iteration, and therefore may require many iterations to converge in large-scale problems.
+                            The <i>gradient projection</i> method allows rapid changes in the active set and can be
+                            applied to both convex and non-convex problems. It is most effective for QPs with bound
+                            constraints on the decision variables of the following form.
+                            \begin{equation}
+                            \underset{x\in \mathcal{R}^n}{\mathrm{min}} \quad \frac{1}{2}x^TGx + c^Tx,\quad
+                            \mathrm{s.t.}~l \leq x \leq u \quad \quad \quad (21)
+                            \end{equation}
+                            Here, \(l\) and \(u\) vectors define the lower and upper bounds on the components of \(x\),
+                            and thus the feasible region resembles a box in \(n\) dimensions. Each iteration in gradient
+                            projection method consists of two stages.
+                        <ol class="mystyle black text-left">
+                            <li> <u>Cauchy point computation</u> : From the current point \(x\), search along the
+                                steepest descent direction \(-g\) given by \(g = Gx + c\). Whenever a bound is
+                                encountered,
+                                the search direction is <i>bent</i> so that it stays feasible. Search is performed along
+                                the resulting piecewise-linear path to locate the first local minimizer of \(q\), which
+                                is
+                                referred to as the Cauchy point (\(x^C\)).
+                            </li>
+
+                            <li> <u>Subspace minimisation</u> : The set of bound constraints that are active at the
+                                Cauchy point determine the working set \(\mathcal{A}(x^C)\). In this second stage, we
+                                solve
+                                a quadratic subproblem on the face of the feasible box on which the Cauchy point lies,
+                                by
+                                fixing the components \(x_i\) for \(i\in\mathcal{A}(x^C)\) at the values \(x^C_i\).
+                                \begin{equation}
+                                \underset{x}{\mathrm{min}} \quad \frac{1}{2}x^TGx + c^Tx, \quad \quad \quad (22)
+                                \end{equation}
+                                \begin{equation*}
+                                \mathrm{s.t.}~x_i = x^C_i~~\forall i\in \mathcal{A}(x^C);\qquad l_i \leq x_i \leq
+                                u_i~~\forall i\notin \mathcal{A}(x^C).
+                                \end{equation*}
+                                For global convergence of the gradient projection procedure, only an approximate
+                                feasible
+                                solution \(x^+\) to the above subproblem is required such that \(q(x^+) \leq q(x^C)\).
+
+                            </li>
+                        </ol>
+                        </p>
+                        <br>
+                        <p class="mystyle black text-left">Though, this methods may be extended to QPs with
+                            general linear constraints, performing the
+                            projection onto feasible set is not computationally economical.</p>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section section-dark text-center">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12 ml-auto mr-auto">
+                        <h2 class="myfont white bg-secondary"><u>3.3 Interior point Methods</u></h2>
+
+                        <p class="mystyle white text-left">
+                            Earlier active set methods are suitable for small and medium sized problems, but more recent
+                            path-following or interior point methods are better suited for large-scale problems.
+
+                            Considering a convex quadratic program with inequality constraints:
+                            \begin{equation}
+                            \underset{x\in \mathcal{R}^n}{\mathrm{min}} \quad \frac{1}{2}x^TGx + c^Tx,\quad
+                            \mathrm{s.t.}~Ax \geq b \quad \quad \quad (23)
+                            \end{equation}
+                            we can write the KKT conditions by introducing a slack vector \(y \geq 0\) as below.
+                            \begin{align*}
+                            Gx - A^T\lambda + c = 0,\\
+                            Ax - y - b = 0,\\
+                            y_i\lambda_i = 0,~~i=1,2,~.~.~,m,\\
+                            (y,\lambda) \geq 0.
+                            \end{align*}
+
+                            Primal-dual class of interior-point methods find solutions of the above system by applying
+                            variants of Newton’s method to the three equalities and modifying the search directions and
+                            step lengths so that the inequalities \((y,\lambda) \geq 0\) are satisfied strictly at every
+                            iteration. In their simplest form, interior-point methods trace the central path that is
+                            defined by the iterates \((x,y,\lambda)\) which are primal and dual feasible.
+
+                            Given an iterate \((x,y,\lambda)\) that satisfies \((y,\lambda) \geq 0\), a complementarity
+                            measure \(\mu\) is defined by \(\mu = y^T\lambda/m\). Then, a perturbed KKT system can be
+                            defined can be written as
+                            \begin{equation}
+                            F(x,y,\lambda;\sigma\mu) =
+                            \begin{bmatrix}
+                            Gx - A^T\lambda + c\\
+                            Ax - y - b\\
+                            \mathcal{Y}\Lambda e - \sigma\mu e
+                            \end{bmatrix} = 0,
+                            \label{eq:int_pt_KKT} \quad \quad \quad (24)
+                            \end{equation}
+                            where
+                            \begin{equation*}
+                            \mathcal{Y} = diag(y_1,y_2,~.~.~,y_m),~~~\Lambda =
+                            diag(\lambda_1,\lambda_2,~.~.~,\lambda_m),
+                            \end{equation*}
+                            \begin{equation*}
+                            e =(1,1,~.~.~,1)^T,~~~and~~~\sigma \in [0,1].
+                            \end{equation*}
+
+                            For positive values of \(\sigma\) and \(\mu\), the solutions of (Eq. 24) define
+                            the <i>central path</i>, which is the trajectory that leads to the optimum point in the
+                            limit \(\sigma\mu\) tending to zero. Fixing \(\mu\) and applying Newton's method to
+                            (Eq. 24) results in the following linear system.
+                            \begin{equation}
+                            \begin{bmatrix}
+                            G & 0 & -A^T\\
+                            A &-I & 0\\
+                            0 & \Lambda & \mathcal{Y}
+                            \end{bmatrix}
+                            \begin{bmatrix}
+                            \Delta x\\
+                            \Delta y\\
+                            \Delta \lambda
+                            \end{bmatrix} =
+                            \begin{bmatrix}
+                            -(Gx - A^T\lambda + c)\\
+                            -(Ax - y - b)\\
+                            -\Lambda\mathcal{Y}e + \sigma\mu e
+                            \end{bmatrix}.
+                            \label{eq:pri-dual-sys} \quad \quad \quad (25)
+                            \end{equation}
+                            Thereafter, we set the next iterate as
+                            \begin{equation}
+                            (x^+,y^+,\lambda^+) = (x,y,\lambda) + \alpha(\Delta x,\Delta y,\Delta \lambda)\quad \quad
+                            \quad (26)
+                            \end{equation}
+                            where step length parameter is chosen to satisfy \((y^+,\lambda^+) > 0\) and various other
+                            conditions. Solving the primal-dual system (25) is the major
+                            computational operation and therefore choosing a proper factorisation strategy or
+                            preconditioner for the same is necessary.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My applications start here -->
+        <div class="section text-center">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12 ml-auto mr-auto">
+                        <h1 class="title myfont bg-primary">4. Applications</h1>
+
+                        <p class="mystyle black text-left">
+                            Quadratic Programming has been effectively applied in many domains like finance,
+                            agriculture, economics,
+                            production operations, marketing, etc. We now here show two applications of it.
+                        </p>
+                        <h2 class="myfont black bg-secondary"><u>4.1 Application 1: Portfolio Allocation using Quadratic
+                                Programming.</u></h2>
+                        <p class="mystyle black text-left">
+                            The tradeoff between risk and return is the core of portfolio optimization. The returns
+                            (\(r_i\)) of an
+                            investment \(i\)
+                            is not
+                            known well in advance, hence they are modelled as random variables from a Normal
+                            distribution, where \(\mu_i\ =
+                            E[r_i]\) and \(\sigma_i = E[(r_i - \mu_i)^2] \). \(\sigma_i\) indicates the risk associated
+                            with that particular
+                            investment, higher the \(\sigma_i\) higher the risk and vice versa.
+
+                            Usually the returns of investments in a portfolio are not independent. The correlations
+                            between pairs can be
+                            defined as:
+                            \(\rho_{ij} = \frac{E[(r_i - \mu_i)(r_j - \mu_j)]}{\sigma_i \sigma_j} \). \(\rho_{ij}\)
+                            depicts how well the
+                            investment \(i\) and investment \(j\) move in the same direction.
+
+                            Assuming \(x_i\) fraction of total fund is invested in the \(i\)th investement, leads to the
+                            constraints
+                            \(\sum_{i=1}^{n}x_i \le 1\) and \(x_i \ge 0\). Now the expected return of the portfolio is
+                            \(E[R] = x^T\mu\) and
+                            variance is \(Var[R] = x^TGx\) where \(G_{ij} = \rho_{ij} \sigma_{i} \sigma_{j}\) is the
+                            covariance matrix.
+
+
+                            The best portfolio is the one with high expected return and low variance. The model proposed
+                            by Markowitz
+                            combines both the above objectives into a single objective by introducing a non-negative
+                            "risk tolerance
+                            factor"(\(\kappa\)).
+                            The optimal investment fractions (\(x_i\)s) can be obtained by solving the following
+                            quadratic programming
+                            problem:
+                            \[
+                            \max x^T\mu - \kappa x^TGx,\;\; \text{subject to}\;\; \sum_{i=1}^{n} x_i \le 1, x_i \ge 0
+                            \]
+                            Conservative investors go with higher \(\kappa\) to reduce the risk, where as bold investors
+                            go with a lower
+                            \(\kappa\) with a hope of higher returns.
+
+                            Feel free to play around with the below toy example which uses <a
+                                href="https://www.npmjs.com/package/quadprog-js" target="_blank"
+                                class="myfont">Quadprog-JS</a> for
+                            solving QP.
+                        </p>
+                        <!-- <div>
+                            <h1>{{message}}</h1>
+                            <button ng-click="test()">OK</button>
+                        </div> -->
+                    </div>
+                </div>
+                <br><br>
+            </div>
+            <div class="border border-dark rounded container">
+                <h2 class="myfont black"><u>Toy example with a portfolio of 2 investements</u></h2>
+                <p class="myfont" style="font-size: 20px;">(The following tables as interactive, feel free to try out
+                    different values)</p>
+                <br>
+                <div class="row">
+                    <div class="col-md-3 ml-auto mr-auto">
+                        <table class="table table-striped table-dark table-borderless mystyle">
+                            <caption class="mystyle black text-center"><u>Mean of returns</u></caption>
+                            <thead class="bg-white black">
+                                <tr>
+                                    <th scope="row" style="width: 65%">Risk Factor(\(\kappa\)):</th>
+                                    <th style="width: 35%"><input
+                                            class="input-group input-group-sm mystyle black text-center" type="number"
+                                            min="0" ng-model="k" ng-change="compute_opt()" placeholder="k>0">
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Stock 1</th>
+                                    <td><input class="input-group input-group-sm mystyle black text-center"
+                                            type="number" ng-model="mean1" ng-change="compute_opt()"></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Stock 2</th>
+                                    <td><input class="input-group input-group-sm mystyle black text-center"
+                                            type="number" ng-model="mean2" ng-change="compute_opt()"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div ng-show="!k" class="alert alert-danger">
+                            <div class="container">
+                                <span>Enter a value for \(\kappa\)</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 ml-auto mr-auto">
+                        <table class="table table-striped table-dark table-bordered mystyle">
+                            <caption class="mystyle black text-center"><u>Covariance of returns</u></caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col" style="width: 33%"></th>
+                                    <th scope="col" style="width: 33%">Stock 1</th>
+                                    <th scope="col" style="width: 33%">Stock 2</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Stock 1</th>
+                                    <td><input class="input-group input-group-sm mystyle black text-center"
+                                            type="number" ng-model="var1" ng-change="compute_opt()"></td>
+                                    <td><input class="input-group input-group-sm mystyle black text-center" type="text"
+                                            ng-model="covar" ng-change="compute_opt()"></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Stock 2</th>
+                                    <td><input class="input-group input-group-sm mystyle black text-center" type="text"
+                                            ng-model="covar" ng-change="compute_opt()">
+                                    </td>
+                                    <td><input class="input-group input-group-sm mystyle black text-center" type="text"
+                                            ng-model="var2" ng-change="compute_opt()"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div ng-if="err_msg" class="alert alert-danger">
+                            <div class="container">
+                                <span>Error: {{err_msg}}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 ml-auto mr-auto border border-dark rounded" id="myDiv">
+                        <!-- <button ng-click="button_clk()">Click to see interactive plot</button> -->
+                        <div id='myDiv'></div>
+                    </div>
+                </div>
+
+                <br>
+                <div class="row">
+                    <div class="col-md-10 ml-auto mr-auto">
+                        <div class="alert alert-warning">
+                            <div class="container">
+                                <span class="mystyle black">The above is an interactive plot created using <a
+                                        href="https://plotly.com/" target="_blank" class="myfont"
+                                        style="color:#2980b9;">Plotly</a>. It
+                                    is
+                                    zoomable and
+                                    rotatable.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-5 ml-auto mr-auto border border-dark rounded">
+                        <p class="mystyle black">
+                            Play around with different fractions of investments:
+                            <!-- <div>
+                            <label class="mystyle black">\(x_1\)<input ng-model="x1" type="range" min="0" max="1"
+                                    step="0.01" /></label> : <span class="mystyle black">{{x1}}</span>
+                            <br>
+                            <label class="mystyle black">\(x_2\)<input ng-model="x2" type="range" min="0" max="1"
+                                    step="0.01" /></label> : <span class="mystyle black">{{x2}}</span>
+                        </div> -->
+                        <table class="table table-borderless mystyle black">
+                            <tbody>
+                                <tr>
+                                    <td style="width: 25%">\(x_1\)</td>
+                                    <td style="width: 50%"><input ng-model="x1" type="range" min="0" max="1"
+                                            step="0.01" /></td>
+                                    <td style=" width: 25%" class="mystyle black">{{x1| number : 2}}</td>
+                                </tr>
+                                <tr>
+                                    <td>\(x_2\)</td>
+                                    <td><input ng-model="x2" type="range" min="0" max="1" step="0.01" ng-model="x2" />
+                                    </td>
+                                    <td class="mystyle black">{{x2 | number : 2}}</td>
+                                </tr>
+                            </tbody>
+
+                        </table>
+                        </p>
+                        <div ng-show="x1+x2>1" class="alert alert-danger">
+                            <div class="container">
+                                <span>Error: x1+x2>1 </span>
+                            </div>
+                        </div>
+                        <p class="mystyle black">
+                            Objective function value: {{compute_obj_fn(x1,x2) | number:2}}
+                        </p>
+
+
+                    </div>
+                    <div class="col-md-5 ml-auto mr-auto mystyle black border border-dark rounded">
+                        The optimal value of the objective function is:<br>
+                        <span ng-bind="optfun|number:2"></span>
+                        <br>
+                        For the fractions:<br>
+                        x1: {{optx1| number: 2}} <br>
+                        x2: {{optx2| number: 2}}
+                    </div>
+
+                </div>
+                <br>
+                <br>
+            </div>
+
+        </div>
+        <div class="section section-dark text-center">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-12 ml-auto mr-auto">
+
+                        <h2 class="myfont white bg-secondary"><u>4.2 Application 2: Solving SVMs using Quadratic
+                                Programming.</u></h2>
+                        <p class="mystyle white text-left">
+                            SVMs were the most sought to machine learning algorithm before the rise of deep learning.
+                            They have been
+                            extensively used for many Machine learning tasks like text classification, image
+                            classification, protein
+                            classification, cancer classification etc. Most of the power to SVMs come from the kernel
+                            trick, which is used
+                            while solving non linearly separable data. For the current discussion we consider solving a
+                            soft margin SVM on a
+                            linearly separable data using Quadratic programming. Refer to the <a
+                                href="https://en.wikipedia.org/wiki/Support-vector_machine" target="_blank">Wikipedia
+                                article on SVM</a> for
+                            more details.
+                            For a given dataset of \((x_i,y_i)_{i=1}^n\) with m features and n data points, soft Margin
+                            SVMs have the
+                            following objective:
+
+                            \begin{equation}
+                            \begin{array}{l}
+                            \min \frac{1}{2}||w||^2 + C \sum_{n=1}^{N} \xi_n \\
+                            st \; y_n w^Tx_n \ge 1 - \xi_n , \; \xi_n \ge 0
+                            \end{array}
+                            \end{equation}
+
+                            In this example we use <a href="https://cvxopt.org/" target="_blank">CVXOPT</a> to solve the
+                            above Quadratic
+                            Program. The standard form of QP used in CVXOPT
+                            is
+                            given by:
+                            \begin{equation}
+                            \begin{array}{l}
+                            \min \frac{1}{2}x^TPx + q^Tx \\
+                            st \; Gx \preceq h , \; Ax = b
+                            \end{array}
+                            \end{equation}
+
+                            For more details please refer to <a
+                                href="https://cvxopt.org/userguide/coneprog.html#quadratic-programming"
+                                target="_blank">QP
+                                docs of CVXOPT</a>.
+                            Now, let us convert the SVM objective into the above standard form. Firstly, in the SVM
+                            formulation as there are
+                            m features and n data points, this gives rise to m+1+n unknowns to be solved for.
+                            i.e m feature weights(\(w\)), 1 bias term (\(b\)) and n slack variable (\(\xi_n\)). Hence
+                            for the SVM problem,
+
+                            \begin{equation}
+                            \begin{array}{l}
+                            x = [w_1,w_2 \cdots w_n, b , \xi_1, \xi_2, \cdots \xi_n ] \\
+                            P = \begin{bmatrix} \begin{bmatrix} 1 & 0 & \cdots & 0 \\ 0 & 1 & \cdots & 0 \\ \vdots &
+                            \vdots & \ddots &
+                            \vdots\ \\ 0& 0 & \cdots & 1\\
+                            \end{bmatrix}_{m \times m} & \mathbf{0}_{m \times n+1}\\
+                            \mathbf{0}_{n+1 \times m} & \mathbf{0}_{n+1 \times n+1} \end{bmatrix}\\
+                            q = \begin{bmatrix} \begin{bmatrix} 0 & \cdots & 0 \end{bmatrix}_{1 \times m+1}
+                            \begin{bmatrix} C & \cdots & C
+                            \end{bmatrix}_{1 \times n} \end{bmatrix}\\
+                            G = \begin{bmatrix}
+                            \begin{bmatrix}
+                            \text{---} & -y_1x_1 & \text{---} \\
+                            \text{---} & -y_2x_2 & \text{---} \\
+                            & \vdots& \\
+                            \text{---} & -y_nx_n & \text{---} \\
+                            \end{bmatrix}_{m \times n} & \begin{bmatrix} -y_1\\ -y_2\\ \vdots \\ -y_n \end{bmatrix}_{n
+                            \times 1} &
+                            \begin{bmatrix}
+                            -1 & 0 & \cdots & 0 & 0 \\
+                            0 & -1 & \cdots & 0 & 0 \\
+                            & & \vdots & \\
+                            0 & 0 & \cdots & 0 & -1
+                            \end{bmatrix}_{n \times n} \\
+                            \mathbf 0_{m \times n} & \mathbf 0_{n \times 1} & \begin{bmatrix}
+                            -1 & 0 & \cdots & 0 & 0 \\
+                            0 & -1 & \cdots & 0 & 0 \\
+                            & & \vdots & \\
+                            0 & 0 & \cdots & 0 & -1
+                            \end{bmatrix}_{n \times n}
+                            \end{bmatrix}\\
+                            h = \begin{bmatrix} \begin{bmatrix} -1 & \cdots & -1 \end{bmatrix}_{1 \times n}
+                            \begin{bmatrix} 0 & \cdots & 0
+                            \end{bmatrix}_{1 \times n} \end{bmatrix}\\
+                            A = \mathbf{0} \\
+                            b = \mathbf{0}
+
+                            \end{array}
+                            \end{equation}
+
+                            The following Github gist written in python uses quadratic programming solvers from CVXOPT
+                            to solve soft margin
+                            SVMs.
+                        </p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-8 ml-auto mr-auto">
+                        <script
+                            src="https://gist.github.com/EshwarSR/3a11fb27acac04377bb958653a80d808.js?file=qp_svm.py"></script>
+                    </div>
+                    <p class="mystyle white">The above code is applied on a sample dataset for demonstration. The
+                        jupyter notebook can be found <a
+                            href="https://gist.github.com/EshwarSR/3a11fb27acac04377bb958653a80d808#file-test_qp_svm-ipynb"
+                            target="_blank">here</a>.</p>
+                </div>
+                <br />
+                <br />
+            </div>
+        </div>
+
+    </div>
+    </div>
+    <footer class="footer   footer-white ">
+        <div class="container">
+            <div class="row">
+                <div class="credits ml-auto">
+                    <span class="copyright">
+                        ©
+                        <script>
+                            document.write(new Date().getFullYear())
+                        </script>, made with <i class="fa fa-heart heart"></i> by Creative Tim
+                    </span>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!--   Core JS Files   -->
+    <script src="./assets/js/core/jquery.min.js" type="text/javascript"></script>
+    <script src="./assets/js/core/popper.min.js" type="text/javascript"></script>
+    <script src="./assets/js/core/bootstrap.min.js" type="text/javascript"></script>
+    <!--  Plugin for Switches, full documentation here: http://www.jque.re/plugins/version3/bootstrap.switch/ -->
+    <script src="./assets/js/plugins/bootstrap-switch.js"></script>
+    <!--  Plugin for the Sliders, full documentation here: http://refreshless.com/nouislider/ -->
+    <script src="./assets/js/plugins/nouislider.min.js" type="text/javascript"></script>
+    <!--  Plugin for the DatePicker, full documentation here: https://github.com/uxsolutions/bootstrap-datepicker -->
+    <script src="./assets/js/plugins/moment.min.js"></script>
+    <script src="./assets/js/plugins/bootstrap-datepicker.js" type="text/javascript"></script>
+    <!-- Control Center for Paper Kit: parallax effects, scripts for the example pages etc -->
+    <script src="./assets/js/paper-kit.js?v=2.2.0" type="text/javascript"></script>
+</body>
+
+</html>
