@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en-US">
+	
+<link rel='stylesheet' id='generate-style-css'  href='https://www.redips.net/wp-content/themes/generatepress/assets/css/style.min.css?ver=3.0.2' media='all' />
+
+
+<body>
+
+
+<div id="my-container">
+<center><br />
+<input type="button" value="Add stock" onclick="javascript:appendRowColumn()" class="append_rowcolumn"/><br />
+<input type="button" value="Delete all" onclick="javascript:deleteColumns();deleteRows()" class="delete"/></p>
+<table id="my-table" align="center" cellspacing="0" cellpadding="0" border="0">
+<tr>
+<td>1</td>
+<td><input type="text" id="01" onchange="javascript:addSymmetric(this.id)"></td>
+</tr>
+<tr>
+<td><input type="text" id="10" onchange="javascript:addSymmetric(this.id)"></td>
+<td>1</td>
+</tr>
+
+</table>
+
+</div>
+
+<p><script language="JavaScript" type="text/javascript">
+
+	function appendColumn(){
+		var tbl=document.getElementById('my-table');
+		var colNum = tbl.rows[0].cells.length;
+		for(var rowNum=0;rowNum<tbl.rows.length;rowNum++)
+		{
+			createCell(tbl.rows[rowNum].insertCell(tbl.rows[rowNum].cells.length),rowNum,colNum);
+		}
+	}
+
+
+	function appendRow(){
+		var tbl=document.getElementById('my-table');
+		var rowNum=tbl.rows.length;
+		var row=tbl.insertRow(tbl.rows.length);
+		for(var colNum=0;colNum<tbl.rows[0].cells.length;colNum++)
+		{
+			createCell(row.insertCell(colNum),rowNum,colNum);
+		}
+	}
+
+	function appendRowColumn(){
+		appendColumn();
+		appendRow();
+	}
+
+function createCell(cell,rowNum,colNum){
+	if(rowNum == colNum){
+		var div = document.createElement('div');
+        txt = document.createTextNode('1');
+	    div.appendChild(txt);
+	    cell.appendChild(div);
+	    return; 
+	}
+	var input=document.createElement('input');
+	input.setAttribute('id',''+rowNum+colNum);
+	input.setAttribute('type','text');
+	input.setAttribute('onchange',"addSymmetric(this.id);" );
+	cell.appendChild(input);
+}
+
+function deleteRows(){
+	var tbl=document.getElementById('my-table');
+	var lastRow=tbl.rows.length-1;
+	for(var i=lastRow;i>0;i--)
+		tbl.deleteRow(i);
+}
+
+
+function deleteColumns(){
+	var tbl=document.getElementById('my-table');
+	var lastCol=tbl.rows[0].cells.length-1;
+	for(var i=0;i<tbl.rows.length;i++)
+		for(var j=lastCol;j>0;j--)
+			tbl.rows[i].deleteCell(j);
+	}
+
+function addSymmetric(elementId){
+	var symmId = elementId.split("").reverse().join("");
+	document.getElementById(symmId).value = document.getElementById(elementId).value;
+}
+
+
+</script>
+
+<style>
+div#my-container input{padding:5px;font-size:12px !important;width:100px;margin:2px}
+table#my-table{border-collapse:collapse;width:0%}
+table#my-table td{width:50px;height:27px;border:1px solid #D3D3D3;text-align:center;padding:0;}
+.append_row{color:black !important;background-color:#FFD6D6 !important;border:1px #ccc solid !important;}
+.append_column{color:black !important;background-color:#D6FFD6 !important;border:1px #ccc solid !important;}
+.delete{color:black !important;background-color:#eee !important;border:1px #ccc solid !important;}
+.col{background-color:#D6FFD6 !important}
+.row{background-color:#FFD6D6 !important}
+</style>
+</div>
+
+
+
+
+</body>
+</html>
